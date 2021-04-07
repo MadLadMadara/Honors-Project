@@ -372,6 +372,8 @@ def main(win):  # *
         draw_next_shape(next_piece, win)
         pygame.display.update()
 
+        # TODO: update csv here with new move
+
         if check_lost(locked_positions):
             draw_text_middle(win, "YOU LOST!", 80, (255,255,255))
             pygame.display.update()
