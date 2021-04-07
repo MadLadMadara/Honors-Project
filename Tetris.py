@@ -1,9 +1,16 @@
 import pygame
 import random
 
+# !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
+
+# !!!!!!!!!!!!!! TWITCH PLAYS CODE !!!!!!!!!!!!!!
+
+
+# !!!!!!!!!!!!!! GAME CODE !!!!!!!!!!!!!!
+
 pygame.font.init()
 
-# GLOBALS VARS
+# GLOBALS VARS 
 s_width = 800
 s_height = 700
 play_width = 300  # meaning 300 // 10 = 30 width per block
@@ -123,7 +130,7 @@ shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 16
 # index 0 - 6 represent shape
 
 
-class Piece(object):  # *
+class Piece(object): 
     def __init__(self, x, y, shape):
         self.x = x
         self.y = y
@@ -296,7 +303,7 @@ def draw_window(surface, grid, score=0, last_score = 0):
     #pygame.display.update()
 
 
-def main(win):  # *
+def game(win):  # *
     last_score = max_score()
     locked_positions = {}
     grid = create_grid(locked_positions)
@@ -333,7 +340,7 @@ def main(win):  # *
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
-
+            # TODO:Chanage key press to twitch chat
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
                     current_piece.x -= 1
@@ -392,11 +399,13 @@ def main_menu(win):  # *
             if event.type == pygame.QUIT:
                 run = False
             else:
-                main(win)
+                game(win)
 
     pygame.display.quit()
 
+# !!!!!!!!!!!!!! MAIN !!!!!!!!!!!!!!
 
-win = pygame.display.set_mode((s_width, s_height))
-pygame.display.set_caption('Tetris')
-main_menu(win)
+def main():
+    win = pygame.display.set_mode((s_width, s_height))
+    pygame.display.set_caption('Tetris')
+    main_menu(win)
