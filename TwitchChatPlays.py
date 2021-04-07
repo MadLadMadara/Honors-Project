@@ -1,25 +1,27 @@
 import socket
 import threading
-from ahk import AHK
+import json 
 
-#Download Autohotkey at https://www.autohotkey.com/ and provide the address to
-#AutoHotkey.exe below!
-ahk = AHK(executable_path='C:\\path\\to\\AutoHotkey.exe')
+# load config
 
-SERVER = "irc.twitch.tv"
-PORT = 6667
+with open('config.json', 'r') as myfile:
+    data=myfile.read()
+configJson = json.loads(data)
 
-#Your OAUTH Code Here https://twitchapps.com/tmi/
-PASS = "OAUTH CODE"
-
-#What you'd like to name your bot
-BOT = "TwitchBot"
-
-#The channel you want to monitor
-CHANNEL = "The Channel"
+SERVER = configJson['TWITCH']['CONNECTION']['SERVER']
+PORT = int(configJson['TWITCH']['CONNECTION']['PORT'])
 
 #Your account
-OWNER = "You"
+OWNER = str(configJson['TWITCH']['ACCOUNT']['NAME'])
+#Your OAUTH Code Here https://twitchapps.com/tmi/
+PASS = str(configJson['TWITCH']['ACCOUNT']['OAUTH'])
+
+#What you'd like to name your bot
+BOT = str(configJson['TWITCH']['BOT']['NAME'])
+#The channel you want to monitor
+CHANNEL = str(configJson['TWITCH']['BOT']['MONITORING-CHANNEL-NAME'])
+
+
 
 message = ""
 user = ""
@@ -33,49 +35,28 @@ irc.send((	"PASS " + PASS + "\n" +
 
 def gamecontrol():
 
+	global user
 	global message
+
 
 	while True:
 
 		if "up" == message.lower():
-			ahk.key_press('up')
+			print("game:"+user+" "+ message)
 			message = ""
 
 		if "down" == message.lower():
-			ahk.key_press('down')
+	
 			message = ""
 
 		if "left" == message.lower():
-			ahk.key_press('left')
+		
 			message = ""
 
 		if "right" == message.lower():
-			ahk.key_press('right')
+		
 			message = ""
 
-		if "a" == message.lower():
-			ahk.key_press('z')
-			message = ""
-
-		if "b" == message.lower():
-			ahk.key_press('x')
-			message = ""
-
-		if "lb" == message.lower():
-			ahk.key_press('a')
-			message = ""
-
-		if "rb" == message.lower():
-			ahk.key_press('s')
-			message = ""
-
-		if "select" == message.lower():
-			ahk.key_press('d')
-			message = ""
-
-		if "start" == message.lower():
-			ahk.key_press('enter')
-			message = ""
 
 def twitch():
 
@@ -105,7 +86,7 @@ def twitch():
 		irc.send((messageTemp + "\n").encode())
 
 	def getUser(line):
-		#global user
+		# global user
 		colons = line.count(":")
 		colonless = colons-1
 		separate = line.split(":", colons)

@@ -1,6 +1,10 @@
+
 # config file
 config.json
 
 # Data
 
+# misc
+.vscode
+.settings.json
 

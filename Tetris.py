@@ -1,13 +1,116 @@
+# game imports
 import pygame
 import random
+# twitch plays imports
+import socket
+import threading
+import json 
 
 # !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
+message = ""
+user = ""
+# !!!!!!!!!!!!!! TWITCH CHAT BOT !!!!!!!!!!!!!!
 
-# !!!!!!!!!!!!!! TWITCH PLAYS CODE !!!!!!!!!!!!!!
+with open('config.json', 'r') as myfile:
+    data=myfile.read()
+configJson = json.loads(data)
 
+SERVER = configJson['TWITCH']['CONNECTION']['SERVER']
+PORT = int(configJson['TWITCH']['CONNECTION']['PORT'])
 
-# !!!!!!!!!!!!!! GAME CODE !!!!!!!!!!!!!!
+#Your account
+OWNER = str(configJson['TWITCH']['ACCOUNT']['NAME'])
+#Your OAUTH Code Here https://twitchapps.com/tmi/
+PASS = str(configJson['TWITCH']['ACCOUNT']['OAUTH'])
 
+#What you'd like to name your bot
+BOT = str(configJson['TWITCH']['BOT']['NAME'])
+#The channel you want to monitor
+CHANNEL = str(configJson['TWITCH']['BOT']['MONITORING-CHANNEL-NAME'])
+
+irc = socket.socket()
+
+irc.connect((SERVER, PORT))
+irc.send((	"PASS " + PASS + "\n" +
+			"NICK " + BOT + "\n" +
+			"JOIN #" + CHANNEL + "\n").encode())
+
+def twitch():
+
+	global user
+	global message
+
+	def joinchat():
+		Loading = True
+		while Loading:
+			readbuffer_join = irc.recv(1024)
+			readbuffer_join = readbuffer_join.decode()
+			print(readbuffer_join)
+			for line in readbuffer_join.split("\n")[0:-1]:
+				print(line)
+				Loading = loadingComplete(line)
+
+	def loadingComplete(line):
+		if("End of /NAMES list" in line):
+			print("TwitchBot has joined " + CHANNEL + "'s Channel!")
+			sendMessage(irc, "Hello World!")
+			return False
+		else:
+			return True
+
+	def sendMessage(irc, message):
+		messageTemp = "PRIVMSG #" + CHANNEL + " :" + message
+		irc.send((messageTemp + "\n").encode())
+
+	def getUser(line):
+		# global user
+		colons = line.count(":")
+		colonless = colons-1
+		separate = line.split(":", colons)
+		user = separate[colonless].split("!", 1)[0]
+		return user
+
+	def getMessage(line):
+		#global message
+		try:
+			colons = line.count(":")
+			message = (line.split(":", colons))[colons]
+		except:
+			message = ""
+		return message
+
+	def console(line):
+		if "PRIVMSG" in line:
+			return False
+		else:
+			return True
+
+	joinchat()
+	irc.send("CAP REQ :twitch.tv/tags\r\n".encode())
+    # TODO:need to end thread on clode
+	while True:
+		try:
+			readbuffer = irc.recv(1024).decode()
+		except:
+			readbuffer = ""
+		for line in readbuffer.split("\r\n"):
+			if line == "":
+				continue
+			if "PING :tmi.twitch.tv" in line:
+				print(line)
+				msgg = "PONG :tmi.twitch.tv\r\n".encode()
+				irc.send(msgg)
+				print(msgg)
+				continue
+			else:
+				try:
+					user = getUser(line)
+					message = getMessage(line)
+					print(user + " : " + message)
+				except Exception:
+					pass
+
+# !!!!!!!!!!!!!! GAME !!!!!!!!!!!!!!
 pygame.font.init()
 
 # GLOBALS VARS 
@@ -304,6 +407,9 @@ def draw_window(surface, grid, score=0, last_score = 0):
 
 
 def game(win):  # *
+
+    global message
+    global user
     last_score = max_score()
     locked_positions = {}
     grid = create_grid(locked_positions)
@@ -336,29 +442,36 @@ def game(win):  # *
                 current_piece.y -= 1
                 change_piece = True
 
+                
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
                 pygame.display.quit()
             # TODO:Chanage key press to twitch chat
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_LEFT:
-                    current_piece.x -= 1
-                    if not(valid_space(current_piece, grid)):
-                        current_piece.x += 1
-                if event.key == pygame.K_RIGHT:
-                    current_piece.x += 1
-                    if not(valid_space(current_piece, grid)):
-                        current_piece.x -= 1
-                if event.key == pygame.K_DOWN:
-                    current_piece.y += 1
-                    if not(valid_space(current_piece, grid)):
-                        current_piece.y -= 1
-                if event.key == pygame.K_UP:
-                    current_piece.rotation += 1
-                    if not(valid_space(current_piece, grid)):
-                        current_piece.rotation -= 1
+        if "up" == message.lower():
+            current_piece.rotation += 1
+        elif not(valid_space(current_piece, grid)):
+            current_piece.rotation -= 1
+        elif "down" == message.lower():
+            current_piece.y += 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.y -= 1
+        elif "right" == message.lower():
+            current_piece.x += 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.x -= 1
+        elif "left" == message.lower():
+            current_piece.x -= 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.x += 1
+        else: 
+            # not a valed comand
+            pass
 
+        print(grid)
+
+        message = ""
         shape_pos = convert_shape_format(current_piece)
 
         for i in range(len(shape_pos)):
@@ -388,13 +501,19 @@ def game(win):  # *
             run = False
             update_score(score)
 
+def logEvent():
+    pass
 
-def main_menu(win):  # *
+def main_menu():
     run = True
     while run:
+        win = pygame.display.set_mode((s_width, s_height))
+        pygame.display.set_caption('Tetris')
         win.fill((0,0,0))
         draw_text_middle(win, 'Press Any Key To Play', 60, (255,255,255))
         pygame.display.update()
+        t1 = threading.Thread(target = twitch)
+        t1.start()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -406,6 +525,6 @@ def main_menu(win):  # *
 # !!!!!!!!!!!!!! MAIN !!!!!!!!!!!!!!
 
 def main():
-    win = pygame.display.set_mode((s_width, s_height))
-    pygame.display.set_caption('Tetris')
-    main_menu(win)
+    if __name__ =='__main__':
+        main_menu()
+main()
