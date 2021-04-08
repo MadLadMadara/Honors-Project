@@ -6,14 +6,16 @@ import socket
 import threading
 import json 
 
-# !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
-message = ""
-user = ""
-# !!!!!!!!!!!!!! TWITCH CHAT BOT !!!!!!!!!!!!!!
-
+# !!!!!!!!!!!!!! LOAD CONFIG !!!!!!!!!!!!!!
 with open('config.json', 'r') as myfile:
     data=myfile.read()
 configJson = json.loads(data)
+
+# !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
+message = ""
+user = ""
+running_flag = False
+# !!!!!!!!!!!!!! TWITCH CHAT BOT !!!!!!!!!!!!!!
 
 SERVER = configJson['TWITCH']['CONNECTION']['SERVER']
 PORT = int(configJson['TWITCH']['CONNECTION']['PORT'])
@@ -37,78 +39,80 @@ irc.send((	"PASS " + PASS + "\n" +
 
 def twitch():
 
-	global user
-	global message
+    global user
+    global message
+    global running_flag
+    
 
-	def joinchat():
-		Loading = True
-		while Loading:
-			readbuffer_join = irc.recv(1024)
-			readbuffer_join = readbuffer_join.decode()
-			print(readbuffer_join)
-			for line in readbuffer_join.split("\n")[0:-1]:
-				print(line)
-				Loading = loadingComplete(line)
+    def joinchat():
+        Loading = True
+        while Loading:
+            readbuffer_join = irc.recv(1024)
+            readbuffer_join = readbuffer_join.decode()
+            print(readbuffer_join)
+            for line in readbuffer_join.split("\n")[0:-1]:
+                print(line)
+                Loading = loadingComplete(line)
 
-	def loadingComplete(line):
-		if("End of /NAMES list" in line):
-			print("TwitchBot has joined " + CHANNEL + "'s Channel!")
-			sendMessage(irc, "Hello World!")
-			return False
-		else:
-			return True
+    def loadingComplete(line):
+        if("End of /NAMES list" in line):
+            print("TwitchBot has joined " + CHANNEL + "'s Channel!")
+            sendMessage(irc, "Hello World!")
+            return False
+        else:
+            return True
 
-	def sendMessage(irc, message):
-		messageTemp = "PRIVMSG #" + CHANNEL + " :" + message
-		irc.send((messageTemp + "\n").encode())
+    def sendMessage(irc, message):
+        messageTemp = "PRIVMSG #" + CHANNEL + " :" + message
+        irc.send((messageTemp + "\n").encode())
 
-	def getUser(line):
-		# global user
-		colons = line.count(":")
-		colonless = colons-1
-		separate = line.split(":", colons)
-		user = separate[colonless].split("!", 1)[0]
-		return user
+    def getUser(line):
+        # global user
+        colons = line.count(":")
+        colonless = colons-1
+        separate = line.split(":", colons)
+        user = separate[colonless].split("!", 1)[0]
+        return user
 
-	def getMessage(line):
-		#global message
-		try:
-			colons = line.count(":")
-			message = (line.split(":", colons))[colons]
-		except:
-			message = ""
-		return message
+    def getMessage(line):
+        #global message
+        try:
+            colons = line.count(":")
+            message = (line.split(":", colons))[colons]
+        except:
+            message = ""
+        return message
 
-	def console(line):
-		if "PRIVMSG" in line:
-			return False
-		else:
-			return True
+    def console(line):
+        if "PRIVMSG" in line:
+            return False
+        else:
+            return True
 
-	joinchat()
-	irc.send("CAP REQ :twitch.tv/tags\r\n".encode())
+    joinchat()
+    irc.send("CAP REQ :twitch.tv/tags\r\n".encode())
     # TODO:need to end thread on clode
-	while True:
-		try:
-			readbuffer = irc.recv(1024).decode()
-		except:
-			readbuffer = ""
-		for line in readbuffer.split("\r\n"):
-			if line == "":
-				continue
-			if "PING :tmi.twitch.tv" in line:
-				print(line)
-				msgg = "PONG :tmi.twitch.tv\r\n".encode()
-				irc.send(msgg)
-				print(msgg)
-				continue
-			else:
-				try:
-					user = getUser(line)
-					message = getMessage(line)
-					print(user + " : " + message)
-				except Exception:
-					pass
+    while running_flag:
+        try:
+            readbuffer = irc.recv(1024).decode()
+        except:
+            readbuffer = ""
+        for line in readbuffer.split("\r\n"):
+            if line == "":
+                continue
+            if "PING :tmi.twitch.tv" in line:
+                print(line)
+                msgg = "PONG :tmi.twitch.tv\r\n".encode()
+                irc.send(msgg)
+                print(msgg)
+                continue
+            else:
+                try:
+                    user = getUser(line)
+                    message = getMessage(line)
+                    print(user + " : " + message)
+                except Exception:
+                    pass
 
 # !!!!!!!!!!!!!! GAME !!!!!!!!!!!!!!
 pygame.font.init()
@@ -410,6 +414,7 @@ def game(win):  # *
 
     global message
     global user
+    global running_flag
     last_score = max_score()
     locked_positions = {}
     grid = create_grid(locked_positions)
@@ -447,6 +452,7 @@ def game(win):  # *
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+                running_flag = False
                 pygame.display.quit()
             # TODO:Chanage key press to twitch chat
         if "up" == message.lower():
@@ -505,6 +511,7 @@ def logEvent():
     pass
 
 def main_menu():
+    global running_flag
     run = True
     while run:
         win = pygame.display.set_mode((s_width, s_height))
@@ -517,6 +524,7 @@ def main_menu():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+                running_flag = False
             else:
                 game(win)
 
