@@ -2,9 +2,11 @@
 # config file
 config.json
 
-# Data
+# LOGS
+/logs
 
 # misc
 .vscode
 .settings.json
+
 

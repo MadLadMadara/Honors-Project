@@ -5,16 +5,24 @@ import random
 import socket
 import threading
 import json 
+# log files import 
+import os
+import datetime
+
 
 # !!!!!!!!!!!!!! LOAD CONFIG !!!!!!!!!!!!!!
 with open('config.json', 'r') as myfile:
     data=myfile.read()
 configJson = json.loads(data)
 
+LOG_FILE = configJson['TWITCH']["BOT"]["LOGS"]["FOLDER_PATH"]+"/"+str(datetime.datetime.now())+".csv"
+if not os.path.exists(LOG_FILE):
+    with open(LOG_FILE, 'w'): pass
+
 # !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
 message = ""
 user = ""
-running_flag = False
+running_flag = True
 # !!!!!!!!!!!!!! TWITCH CHAT BOT !!!!!!!!!!!!!!
 
 SERVER = configJson['TWITCH']['CONNECTION']['SERVER']
@@ -113,6 +121,7 @@ def twitch():
                     print(user + " : " + message)
                 except Exception:
                     pass
+    print("BOT KILLED")
 
 # !!!!!!!!!!!!!! GAME !!!!!!!!!!!!!!
 pygame.font.init()
@@ -126,6 +135,11 @@ block_size = 30
 
 top_left_x = (s_width - play_width) // 2
 top_left_y = s_height - play_height
+
+game_count = 1
+
+# score file
+score_file = str(configJson["GAME"]["SCORE-FILE"])
 
 
 # SHAPE FORMATS
@@ -360,7 +374,7 @@ def draw_next_shape(shape, surface):
 def update_score(nscore):
     score = max_score()
 
-    with open('scores.txt', 'w') as f:
+    with open(score_file, 'w') as f:
         if int(score) > nscore:
             f.write(str(score))
         else:
@@ -368,7 +382,7 @@ def update_score(nscore):
 
 
 def max_score():
-    with open('scores.txt', 'r') as f:
+    with open(score_file, 'r') as f:
         lines = f.readlines()
         score = lines[0].strip()
 
@@ -415,11 +429,14 @@ def game(win):  # *
     global message
     global user
     global running_flag
+    global game_count
     last_score = max_score()
     locked_positions = {}
     grid = create_grid(locked_positions)
 
     change_piece = False
+    piece_count = 1
+
     run = True
     current_piece = get_shape()
     next_piece = get_shape()
@@ -475,7 +492,7 @@ def game(win):  # *
             # not a valed comand
             pass
 
-        print(grid)
+    #    TODO: log played action
 
         message = ""
         shape_pos = convert_shape_format(current_piece)
@@ -492,6 +509,7 @@ def game(win):  # *
             current_piece = next_piece
             next_piece = get_shape()
             change_piece = False
+            piece_count = piece_count+1
             score += clear_rows(grid, locked_positions) * 10
 
         draw_window(win, grid, score, last_score)
@@ -502,6 +520,7 @@ def game(win):  # *
 
         if check_lost(locked_positions):
             draw_text_middle(win, "YOU LOST!", 80, (255,255,255))
+            game_count = game_count + 1
             pygame.display.update()
             pygame.time.delay(1500)
             run = False
@@ -519,8 +538,10 @@ def main_menu():
         win.fill((0,0,0))
         draw_text_middle(win, 'Press Any Key To Play', 60, (255,255,255))
         pygame.display.update()
-        t1 = threading.Thread(target = twitch)
-        t1.start()
+
+        twitch_chat_bot = threading.Thread(target = twitch)
+        twitch_chat_bot.start()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
@@ -534,5 +555,9 @@ def main_menu():
 
 def main():
     if __name__ =='__main__':
-        main_menu()
+        global running_flag
+        try: 
+            main_menu()
+        except:
+            running_flag = False
 main()
