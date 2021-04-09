@@ -8,6 +8,7 @@ import json
 # log files import 
 import os
 import datetime
+import hashlib
 
 
 # !!!!!!!!!!!!!! LOAD CONFIG !!!!!!!!!!!!!!
@@ -17,7 +18,8 @@ configJson = json.loads(data)
 
 LOG_FILE = configJson['TWITCH']["BOT"]["LOGS"]["FOLDER_PATH"]+"/"+str(datetime.datetime.now())+".csv"
 if not os.path.exists(LOG_FILE):
-    with open(LOG_FILE, 'w'): pass
+    with open(LOG_FILE, 'w') as log: 
+        log.write("time,username,action,game_number,block_number,block_shape,block_rotation,board_state\n")
 
 # !!!!!!!!!!!!!! SHARED GLOBAL VARS !!!!!!!!!!!!!!
 message = ""
@@ -65,7 +67,7 @@ def twitch():
     def loadingComplete(line):
         if("End of /NAMES list" in line):
             print("TwitchBot has joined " + CHANNEL + "'s Channel!")
-            sendMessage(irc, "Hello World!")
+            sendMessage(irc, "Lets play!\n!!!Controlls!!!\n")
             return False
         else:
             return True
@@ -122,6 +124,7 @@ def twitch():
                 except Exception:
                     pass
     print("BOT KILLED")
+    return 
 
 # !!!!!!!!!!!!!! GAME !!!!!!!!!!!!!!
 pygame.font.init()
@@ -247,12 +250,14 @@ T = [['.....',
       '.....']]
 
 shapes = [S, Z, I, O, J, L, T]
+shapes_letters = ["S", "Z", "I", "O", "J", "L", "T"]
 shape_colors = [(0, 255, 0), (255, 0, 0), (0, 255, 255), (255, 255, 0), (255, 165, 0), (0, 0, 255), (128, 0, 128)]
 # index 0 - 6 represent shape
 
 
 class Piece(object): 
     def __init__(self, x, y, shape):
+        self.shape_letter = shapes_letters[shapes.index(shape)]
         self.x = x
         self.y = y
         self.shape = shape
@@ -424,7 +429,8 @@ def draw_window(surface, grid, score=0, last_score = 0):
     #pygame.display.update()
 
 
-def game(win):  # *
+
+def game(win): 
 
     global message
     global user
@@ -442,7 +448,7 @@ def game(win):  # *
     next_piece = get_shape()
     clock = pygame.time.Clock()
     fall_time = 0
-    fall_speed = 0.27
+    fall_speed = 0.27 * 2
     level_time = 0
     score = 0
 
@@ -492,7 +498,16 @@ def game(win):  # *
             # not a valed comand
             pass
 
-    #    TODO: log played action
+        # log action  TODO:Might need to move
+        if(message != "" and user != ""): 
+            logAction(user, 
+                message, 
+                game_count, 
+                piece_count, 
+                current_piece.shape_letter,
+                current_piece.rotation,
+                grid)
+
 
         message = ""
         shape_pos = convert_shape_format(current_piece)
@@ -526,8 +541,17 @@ def game(win):  # *
             run = False
             update_score(score)
 
-def logEvent():
-    pass
+def logAction(username, action, game_number, block_number, block_shape_letter, block_rotation, grid):
+    with open(LOG_FILE, 'a') as log: 
+            log.write("{0},{1},{2},{3},{4},{5},{6},{7}\n".format(
+                str(datetime.datetime.now()), 
+                username,
+                action,
+                game_number,
+                block_number,
+                block_shape_letter,
+                block_rotation, 
+                grid))
 
 def main_menu():
     global running_flag
@@ -548,6 +572,7 @@ def main_menu():
                 running_flag = False
             else:
                 game(win)
+    running_flag = False
 
     pygame.display.quit()
 
@@ -558,6 +583,7 @@ def main():
         global running_flag
         try: 
             main_menu()
+            running_flag = False
         except:
             running_flag = False
 main()
