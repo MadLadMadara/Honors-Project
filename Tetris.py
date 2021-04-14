@@ -8,7 +8,7 @@ import json
 # log files import 
 import os
 import datetime
-import hashlib
+
 
 
 # !!!!!!!!!!!!!! LOAD CONFIG !!!!!!!!!!!!!!
@@ -477,29 +477,8 @@ def game(win):
                 run = False
                 running_flag = False
                 pygame.display.quit()
-            # TODO:Chanage key press to twitch chat
         if "up" == message.lower():
             current_piece.rotation += 1
-        elif not(valid_space(current_piece, grid)):
-            current_piece.rotation -= 1
-        elif "down" == message.lower():
-            current_piece.y += 1
-            if not(valid_space(current_piece, grid)):
-                current_piece.y -= 1
-        elif "right" == message.lower():
-            current_piece.x += 1
-            if not(valid_space(current_piece, grid)):
-                current_piece.x -= 1
-        elif "left" == message.lower():
-            current_piece.x -= 1
-            if not(valid_space(current_piece, grid)):
-                current_piece.x += 1
-        else: 
-            # not a valed comand
-            pass
-
-        # log action  TODO:Might need to move
-        if(message != "" and user != ""): 
             logAction(user, 
                 message, 
                 game_count, 
@@ -507,6 +486,47 @@ def game(win):
                 current_piece.shape_letter,
                 current_piece.rotation,
                 grid)
+        elif not(valid_space(current_piece, grid)):
+            current_piece.rotation -= 1
+        elif "down" == message.lower():
+            current_piece.y += 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.y -= 1
+            logAction(user, 
+                message, 
+                game_count, 
+                piece_count, 
+                current_piece.shape_letter,
+                current_piece.rotation,
+                grid)
+        elif "right" == message.lower():
+            current_piece.x += 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.x -= 1
+            logAction(user, 
+                message, 
+                game_count, 
+                piece_count, 
+                current_piece.shape_letter,
+                current_piece.rotation,
+                grid)
+        elif "left" == message.lower():
+            current_piece.x -= 1
+            if not(valid_space(current_piece, grid)):
+                current_piece.x += 1
+            logAction(user, 
+                message, 
+                game_count, 
+                piece_count, 
+                current_piece.shape_letter,
+                current_piece.rotation,
+                grid)
+        else: 
+            # not a valed comand
+            pass
+
+        # log action  TODO:Might need to move
+            
 
 
         message = ""
